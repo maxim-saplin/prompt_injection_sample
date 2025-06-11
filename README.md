@@ -1,5 +1,7 @@
 # Prompt Injection Demo Shop Chat App
 
+<img width="1180" alt="image" src="https://github.com/user-attachments/assets/f95019db-a0e6-4805-a989-e67a7ab4b687" />
+
 This repository contains a simple Streamlit-based web shop chat application that demonstrates prompt injection (jailbreak) scenarios in LLM-driven apps, and how to mitigate them using PostgreSQL row-level security (RLS).
 
 ## Tech
