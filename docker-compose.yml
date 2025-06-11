@@ -1,0 +1,14 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15
+    container_name: shop-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: shopdb
+    volumes:
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./sql/rls_policy.sql:/docker-entrypoint-initdb.d/rls_policy.sql
+    ports:
+      - "5432:5432" 
