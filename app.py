@@ -53,34 +53,40 @@ def format_content(content: str) -> str:
 
 # Database connection helper
 def get_connection():
-    conn = psycopg2.connect(
-        host="localhost",
-        port=5432,
-        dbname="shopdb",
-        user="postgres",
-        password="password",
-    )
+
     if st.session_state.get("rls_enabled", False) and "user_email" in st.session_state:
-        with conn.cursor() as cur:
-            cur.execute("SET app.user_email = %s", (st.session_state["user_email"],))
-        conn.commit()
+        conn = psycopg2.connect(
+            host="localhost",
+            port=5432,
+            dbname="shopdb",
+            user="app_user",
+            password="secure_app_password",
+            options=f"-c app.user_email={st.session_state['user_email']}",
+        )
+    else:
+        # Super user to bypass RLS
+        conn = psycopg2.connect(
+            host="localhost",
+            port=5432,
+            dbname="shopdb",
+            user="postgres",
+            password="password",
+        )
     return conn
 
 # Define tool wrappers
 def view_balance(email=None):
-    user_email = email if not st.session_state.get("rls_enabled", False) else st.session_state["user_email"]
     conn = get_connection()
     with conn.cursor() as cur:
-        cur.execute("SELECT balance FROM users WHERE email = %s", (user_email,))
+        cur.execute("SELECT balance FROM users WHERE email = %s", (email,))
         row = cur.fetchone()
     conn.close()
     if row:
         return {"balance": float(row[0])}
-    return {"error": "User not found"}
+    return {"error": "User not found or access denied"}
 
 
 def view_orders(email=None):
-    user_email = email if not st.session_state.get("rls_enabled", False) else st.session_state["user_email"]
     conn = get_connection()
     with conn.cursor() as cur:
         cur.execute(
@@ -90,7 +96,7 @@ def view_orders(email=None):
             JOIN users u ON o.user_id = u.id
             WHERE u.email = %s
             """,
-            (user_email,)
+            (email,)
         )
         rows = cur.fetchall()
     conn.close()
@@ -102,10 +108,9 @@ def view_orders(email=None):
 
 
 def make_order(item, quantity, price, email=None):
-    user_email = email if not st.session_state.get("rls_enabled", False) else st.session_state["user_email"]
     conn = get_connection()
     with conn.cursor() as cur:
-        cur.execute("SELECT id, balance FROM users WHERE email = %s", (user_email,))
+        cur.execute("SELECT id, balance FROM users WHERE email = %s", (email,))
         user = cur.fetchone()
         if not user:
             conn.close()
