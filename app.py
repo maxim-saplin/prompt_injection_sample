@@ -7,8 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Row-level security will be controlled via UI toggle
-
 # System prompt for the shopping assistant
 SYSTEM_PROMPT = (
     "You are a shopping assistant. The current user is {user_email}. "
@@ -24,36 +22,8 @@ client = AzureOpenAI(
     azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT")
 )
 
-# Helper to format assistant responses and function results
-def format_content(content: str) -> str:
-    try:
-        parsed = json.loads(content)
-    except json.JSONDecodeError:
-        return content
-    # Prioritize explicit response field
-    if isinstance(parsed, dict):
-        if "response" in parsed:
-            return parsed["response"]
-        if "orders" in parsed:
-            # Build markdown table for orders
-            header = "| ID | Item | Quantity | Price | Created At |\n|---|---|---|---|---|\n"
-            rows = [f"| {o['id']} | {o['item']} | {o['quantity']} | ${o['price']:.2f} | {o['created_at']} |" for o in parsed["orders"]]
-            return header + "\n".join(rows)
-        if "balance" in parsed:
-            return f"Your current balance is ${parsed['balance']:.2f}."
-        if "order_id" in parsed:
-            msg = f"Your order has been created! Order ID: {parsed['order_id']}"
-            if "total_cost" in parsed and "new_balance" in parsed:
-                msg += f"\nTotal cost: ${parsed['total_cost']:.2f}"
-                msg += f"\nRemaining balance: ${parsed['new_balance']:.2f}"
-            return msg
-        if "message" in parsed:
-            return parsed["message"]
-    return content
-
 # Database connection helper
 def get_connection():
-
     if st.session_state.get("rls_enabled", False) and "user_email" in st.session_state:
         conn = psycopg2.connect(
             host="localhost",
@@ -137,6 +107,34 @@ def make_order(item, quantity, price, email=None):
         conn.commit()
     conn.close()
     return {"order_id": order_id, "total_cost": total_cost, "new_balance": new_balance}
+
+
+# Helper to format assistant responses and function results
+def format_content(content: str) -> str:
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        return content
+    # Prioritize explicit response field
+    if isinstance(parsed, dict):
+        if "response" in parsed:
+            return parsed["response"]
+        if "orders" in parsed:
+            # Build markdown table for orders
+            header = "| ID | Item | Quantity | Price | Created At |\n|---|---|---|---|---|\n"
+            rows = [f"| {o['id']} | {o['item']} | {o['quantity']} | ${o['price']:.2f} | {o['created_at']} |" for o in parsed["orders"]]
+            return header + "\n".join(rows)
+        if "balance" in parsed:
+            return f"Your current balance is ${parsed['balance']:.2f}."
+        if "order_id" in parsed:
+            msg = f"Your order has been created! Order ID: {parsed['order_id']}"
+            if "total_cost" in parsed and "new_balance" in parsed:
+                msg += f"\nTotal cost: ${parsed['total_cost']:.2f}"
+                msg += f"\nRemaining balance: ${parsed['new_balance']:.2f}"
+            return msg
+        if "message" in parsed:
+            return parsed["message"]
+    return content
 
 # Streamlit App Layout
 st.set_page_config(page_title="Shop Chat", layout="wide")
