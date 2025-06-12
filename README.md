@@ -4,6 +4,11 @@
 
 This repository contains a simple Streamlit-based web shop chat application that demonstrates prompt injection (jailbreak) scenarios in LLM-driven apps, and how to mitigate them using PostgreSQL row-level security (RLS).
 
+Two simple learnings:
+- Do not have full DB access in tools
+- Do not design the tools in a way when they can descide the scope of data visible (i.e. do not pass in user email as arg produced by LLM)
+- Use security-in-depth approacg relying on DB doing scoping of requests and refusing to deal with records not associated with user session
+
 ## Tech
 
 - **Streamlit** front-end for chat UI and login simulation
